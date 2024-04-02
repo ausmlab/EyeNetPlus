@@ -1,0 +1,5 @@
+tf_events/
+train_log/
+trained_weights/
+__pycache__/
+data_processing/.ipynb_checkpoints/
