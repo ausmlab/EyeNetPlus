@@ -1,36 +1,37 @@
 from os.path import join, exists, dirname, abspath
 from EyeNetPlus import Network
-from tester_SensatUrban import ModelTester, ModelTester_validation
+from tester_DALES import ModelTester
 from helper_ply import read_ply
-from tool_v2 import ConfigSensatUrban as cfg
+from tool import ConfigDALES as cfg
 from tool import DataProcessing as DP
 import tensorflow as tf
 import numpy as np
 import time, pickle, argparse, glob, os, shutil
 
-
-class SensatUrban:
-    def __init__(self):
-        self.name = 'SensatUrban'
+class Dataset:
+    def __init__(self, mode='train'):
+        self.name = 'DALES'
         self.path = cfg.data_set_dir
-        self.label_to_names = {0: 'Ground', 1: 'High Vegetation', 2: 'Buildings', 3: 'Walls',
-                               4: 'Bridge', 5: 'Parking', 6: 'Rail', 7: 'traffic Roads', 8: 'Street Furniture',
-                               9: 'Cars', 10: 'Footpath', 11: 'Bikes', 12: 'Water'}
+        self.label_to_names = {0: 'Unknown', 1: 'Ground', 2: 'Vegetation', 3: 'Cars',
+                               4: 'Trucks', 5: 'Power lines', 6: 'Poles', 7: 'Fences', 8: 'Buildings'}
         self.num_classes = len(self.label_to_names)
         self.label_values = np.sort([k for k, v in self.label_to_names.items()])
         self.label_to_idx = {l: i for i, l in enumerate(self.label_values)}
-        self.ignored_labels = np.array([])
-
+        self.ignored_labels = np.array([0])
+        self.val_file_name =  ["5080_54400","5080_54470","5100_54440",
+                               "5100_54490","5120_54445","5135_54430",
+                               "5135_54435","5140_54390","5150_54325",
+                               "5155_54335","5175_54395"]
+        
+        self.test_file_name = ["5080_54400","5080_54470","5100_54440",
+                               "5100_54490","5120_54445","5135_54430",
+                               "5135_54435","5140_54390","5150_54325",
+                               "5155_54335","5175_54395"]
+        
         self.all_files = np.sort(glob.glob(join(self.path, 'original_files', '*.ply')))
-        self.val_file_name = ['birmingham_block_1',
-                              'birmingham_block_5',
-                              'cambridge_block_10',
-                              'cambridge_block_7']
-        
-        self.test_file_name = ['birmingham_block_2', 'birmingham_block_8',
-                               'cambridge_block_15', 'cambridge_block_22',
-                               'cambridge_block_16', 'cambridge_block_27']
-        
+        if mode == 'train' :
+            self.val_file_name = [join(self.path, 'original_files', files + '.ply') for files in self.val_file_name]
+        self.test_file_name = [join(self.path, 'original_files', files + '.ply') for files in self.test_file_name]
         
         self.use_val = cfg.use_val_data  # whether use validation set or not
         
@@ -41,61 +42,42 @@ class SensatUrban:
         self.val_labels = []
         self.test_proj = []
         self.test_labels = []
+
         self.possibility = {}
         self.min_possibility = {}
-        self.picking_weights = {}
+        self.class_weight = {}#class weight testing
         self.input_trees = {'training': [], 'validation': [], 'test': []}
-        self.input_colors = {'training': [], 'validation': [], 'test': []}
+        #self.input_colors = {'training': [], 'validation': [], 'test': []}
         self.input_labels = {'training': [], 'validation': [], 'test': []}
         self.input_names = {'training': [], 'validation': [], 'test': []}
-        self.load_sub_sampled_clouds(cfg.sub_grid_size)
+        self.load_sub_sampled_clouds(cfg.sub_grid_size, mode)
         for ignore_label in self.ignored_labels:
             self.num_per_class = np.delete(self.num_per_class, ignore_label)
 
-    def load_sub_sampled_clouds(self, sub_grid_size):
+    def load_sub_sampled_clouds(self, sub_grid_size, mode):
         tree_path = join(self.path, 'grid_{:.3f}'.format(sub_grid_size))
-
-        for i, file_path in enumerate(self.all_files):
+        if mode == 'test':
+            files = self.test_file_name
+        else: 
+            files = self.all_files
+            
+        for i, file_path in enumerate(files):
             t0 = time.time()
             cloud_name = file_path.split('/')[-1][:-4]
-            if cloud_name in self.test_file_name:
+            if mode == 'test':
                 cloud_split = 'test'
-            elif cloud_name in self.val_file_name:
-                cloud_split = 'validation'
             else:
-                cloud_split = 'training'
+                if file_path in self.val_file_name:
+                    cloud_split = 'validation'
+                else:
+                    cloud_split = 'training'
             
-            if (self.use_val == True and cloud_split == 'validation'):
-                # Name of the input files
-                kd_tree_file = join(tree_path, '{:s}_KDTree.pkl'.format(cloud_name))
-                sub_ply_file = join(tree_path, '{:s}.ply'.format(cloud_name))
-
-                data = read_ply(sub_ply_file)
-                sub_colors = np.vstack((data['red'], data['green'], data['blue'])).T
-                sub_labels = data['class']
-
-                # compute num_per_class in training set
-                if cloud_split == 'training':
-                    self.num_per_class += DP.get_num_class_from_label(sub_labels, self.num_classes)
-
-                # Read pkl with search tree
-                with open(kd_tree_file, 'rb') as f:
-                    search_tree = pickle.load(f)
-
-                self.input_trees[cloud_split] += [search_tree]
-                self.input_colors[cloud_split] += [sub_colors]
-                self.input_labels[cloud_split] += [sub_labels]
-                self.input_names[cloud_split] += [cloud_name]
-
-                size = sub_colors.shape[0] * 4 * 7
-                print('use_val config is True. duplicating {:s} for train and validation'.format(kd_tree_file.split('/')[-1]))
-                cloud_split = 'training'
             # Name of the input files
             kd_tree_file = join(tree_path, '{:s}_KDTree.pkl'.format(cloud_name))
             sub_ply_file = join(tree_path, '{:s}.ply'.format(cloud_name))
 
             data = read_ply(sub_ply_file)
-            sub_colors = np.vstack((data['red'], data['green'], data['blue'])).T
+            #sub_colors = data['num_return'].reshape(-1, 1)
             sub_labels = data['class']
 
             # compute num_per_class in training set
@@ -107,38 +89,21 @@ class SensatUrban:
                 search_tree = pickle.load(f)
 
             self.input_trees[cloud_split] += [search_tree]
-            self.input_colors[cloud_split] += [sub_colors]
+            #self.input_colors[cloud_split] += [sub_colors]
             self.input_labels[cloud_split] += [sub_labels]
             self.input_names[cloud_split] += [cloud_name]
 
-            size = sub_colors.shape[0] * 4 * 7
+            size = sub_labels.shape[0] * 4 * 7
             print('{:s} {:.1f} MB loaded in {:.1f}s'.format(kd_tree_file.split('/')[-1], size * 1e-6, time.time() - t0))
 
-        print('\nPreparing reprojected indices for testing')
-
-        # Get validation and test reprojected indices
-
-        for i, file_path in enumerate(self.all_files):
-            t0 = time.time()
-            cloud_name = file_path.split('/')[-1][:-4]
-
-            # val projection and labels
-            if cloud_name in self.val_file_name:
-                proj_file = join(tree_path, '{:s}_proj.pkl'.format(cloud_name))
-                with open(proj_file, 'rb') as f:
-                    proj_idx, labels = pickle.load(f)
-                self.val_proj += [proj_idx]
-                self.val_labels += [labels]
-                print('{:s} done in {:.1f}s'.format(cloud_name, time.time() - t0))
-
-            # test projection and labels
-            if cloud_name in self.test_file_name:
+            if cloud_split == 'test':
+                print('\nPreparing reprojection indices for {}'.format(cloud_name))
                 proj_file = join(tree_path, '{:s}_proj.pkl'.format(cloud_name))
                 with open(proj_file, 'rb') as f:
                     proj_idx, labels = pickle.load(f)
                 self.test_proj += [proj_idx]
                 self.test_labels += [labels]
-                print('{:s} done in {:.1f}s'.format(cloud_name, time.time() - t0))
+        #print('\nPreparing reprojected indices for testing')
 
     def get_batch_gen(self, split):
         if split == 'training':
@@ -149,27 +114,18 @@ class SensatUrban:
             num_per_epoch = cfg.val_steps * cfg.val_batch_size
 
         # Reset possibility
-        self.possibility[split] = [] 
+        self.possibility[split] = []
         self.min_possibility[split] = []
-        self.picking_weights[split] = [] ##<------
-
-        for i, tree in enumerate(self.input_labels[split]):  ##<-------
-            if split == 'training' :
-                init_possibility = np.zeros_like(tree, dtype = np.float32)
-                init_pick_weights = np.zeros_like(tree, dtype = np.float32)
-                values, counts = np.unique(np.array(tree), return_counts=True)  ##<----
-                for j, lbl in enumerate(values) :
-                    init_possibility[np.where(tree==lbl)] = 1e-3 * (counts[j]/np.sum(counts))
-                    init_pick_weights[np.where(tree==lbl)] = counts[j]/np.sum(counts)
-                init_pick_weights = np.sqrt(init_pick_weights)
-                self.picking_weights[split] += [init_pick_weights]
-                self.possibility[split] += [init_possibility]
-
-            else :
-                self.possibility[split] += [np.random.rand(tree.data.shape[0]) * 1e-3]
+        for i, tree in enumerate(self.input_labels[split]):
+            self.possibility[split] += [np.random.rand(tree.data.shape[0]) * 1e-3]
             self.min_possibility[split] += [float(np.min(self.possibility[split][-1]))]
-
-
+        
+        ######################################class weight testing#####################################
+        #if split != 'test':
+        #    _, num_class_total = np.unique(np.hstack(self.input_labels[split]), return_counts=True)
+        #    self.class_weight[split] += [np.squeeze([num_class_total / np.sum(num_class_total)], axis=0)]
+        ################################################################################################
+            
         def spatially_regular_gen():
 
             # Generator loop
@@ -203,7 +159,7 @@ class SensatUrban:
                 # Get corresponding points and colors based on the index
                 base_queried_pc_xyz = points[base_queried_idx]
                 base_queried_pc_xyz[:, 0:2] = base_queried_pc_xyz[:, 0:2] - pick_point[:, 0:2]
-                base_queried_pc_colors = self.input_colors[split][cloud_idx][base_queried_idx]  
+                #base_queried_pc_colors = self.input_colors[split][cloud_idx][base_queried_idx]  
                 base_queried_pc_labels = self.input_labels[split][cloud_idx][base_queried_idx]
                 base_queried_pc_labels = np.array([self.label_to_idx[l] for l in base_queried_pc_labels])
                 
@@ -221,80 +177,76 @@ class SensatUrban:
                 medium_queried_pc_xyz = points[medium_queried_idx]
                 medium_queried_pc_xyz[:, 0:2] = medium_queried_pc_xyz[:, 0:2] - pick_point[:, 0:2]
                 
-                medium_queried_pc_colors = self.input_colors[split][cloud_idx][medium_queried_idx]
+                #medium_queried_pc_colors = self.input_colors[split][cloud_idx][medium_queried_idx]
                 medium_queried_pc_labels = self.input_labels[split][cloud_idx][medium_queried_idx]
                 medium_queried_pc_labels = np.array([self.label_to_idx[l] for l in medium_queried_pc_labels])
                 
                 
                 if len(points) < cfg.num_points * 4 //7:
-                    base_queried_pc_xyz, base_queried_pc_colors, base_queried_idx, base_queried_pc_labels = \
-                        DP.data_aug(base_queried_pc_xyz, 
-                                    base_queried_pc_colors, 
-                                    base_queried_pc_labels,
-                                    base_queried_idx, 
-                                    cfg.num_points * 4 //7)
+                    base_queried_pc_xyz, base_queried_idx, base_queried_pc_labels = \
+                        DP.data_aug_xyz(base_queried_pc_xyz, 
+                                        base_queried_pc_labels,
+                                        base_queried_idx, 
+                                        cfg.num_points * 4 //7)
                     
                 if len(medium_queried_pc_xyz) < cfg.num_points * 3 //7:
-                    medium_queried_pc_xyz, medium_queried_pc_colors, medium_queried_idx, medium_queried_pc_labels = \
-                        DP.data_aug(medium_queried_pc_xyz,
-                                    medium_queried_pc_colors,
-                                    medium_queried_pc_labels,
-                                    medium_queried_idx,
-                                    cfg.num_points * 3 //7)
+                    medium_queried_pc_xyz, medium_queried_idx, medium_queried_pc_labels = \
+                        DP.data_aug_xyz(medium_queried_pc_xyz,
+                                        medium_queried_pc_labels,
+                                        medium_queried_idx,
+                                        cfg.num_points * 3 //7)
                     
                 #concatenate base and medium indexes
                 query_idx = np.concatenate((base_queried_idx, medium_queried_idx))
+                queried_pc_labels = np.concatenate((base_queried_pc_labels, medium_queried_pc_labels), axis = 0)
+                #if split != 'test':
+                #    queried_pt_weight = np.array([self.class_weight[split][0][n] for n in queried_pc_labels])
+                #else:
+                #    queried_pt_weight = 1
                 
                 # Update the possibility of the selected points
                 dists = np.sum(np.square((points[query_idx] - pick_point).astype(np.float32)), axis=1)
+                #delta = np.square(1 - dists / np.max(dists)) * queried_pt_weight
                 delta = np.square(1 - dists / np.max(dists))
-                if split == 'training':
-                    delta = delta * self.picking_weights[split][cloud_idx][query_idx]  ### <-------
                 self.possibility[split][cloud_idx][query_idx] += delta
-                self.possibility[split][cloud_idx][query_idx] = np.clip(self.possibility[split][cloud_idx][query_idx], 0, 1e6)
                 self.min_possibility[split][cloud_idx] = float(np.min(self.possibility[split][cloud_idx]))
                 
                 #combine medium and base points
                 queried_pc_xyz = np.concatenate((base_queried_pc_xyz, medium_queried_pc_xyz), axis = 0)
-                queried_pc_colors = np.concatenate((base_queried_pc_colors, medium_queried_pc_colors), axis = 0)
-                ########
+                #queried_pc_colors = np.concatenate((base_queried_pc_colors, medium_queried_pc_colors), axis = 0)
                 #Preprocessing
-                rgb_mean = [0.485, 0.456, 0.406]  # R, G, B
-                rgb_std = [0.229, 0.224, 0.225]
+                #rgb_mean = [0.485, 0.456, 0.406]  # R, G, B
+                #rgb_std = [0.229, 0.224, 0.225]
 
-                xyz_mean = np.mean(queried_pc_xyz[:, :2], axis=0)
+                #xyz_mean = np.mean(queried_pc_xyz[:, :2], axis=0)
 
-                queried_pc_xyz[:, :2] -= xyz_mean
-                queried_pc_xyz[:, :3] /= 10
+                #queried_pc_xyz[:, :2] -= xyz_mean
+                #queried_pc_xyz[:, :3] /= 10
 
-                queried_pc_colors -= np.array(rgb_mean)
-                queried_pc_colors /= np.array(rgb_std)
+                #queried_pc_colors -= np.array(rgb_mean)
+                #queried_pc_colors /= np.array(rgb_std)
                 ########
-
-                queried_pc_labels = np.concatenate((base_queried_pc_labels, medium_queried_pc_labels), axis = 0)
-
 
                 #TODO: I have to add functions that does not take number of return as features 
                 if True:
                     yield (queried_pc_xyz,
-                           queried_pc_colors.astype(np.float32),
                            queried_pc_labels,
                            query_idx.astype(np.int32),
                            np.array([cloud_idx], dtype=np.int32))
 
         gen_func = spatially_regular_gen
-        gen_types = (tf.float32, tf.float32, tf.int32, tf.int32, tf.int32)
-        gen_shapes = ([None, 3], [None, 3], [None], [None], [None])
+        gen_types = (tf.float32, tf.int32, tf.int32, tf.int32)
+        gen_shapes = ([None, 3], [None], [None], [None])
         return gen_func, gen_types, gen_shapes
 
     #@staticmethod
     def get_tf_mapping2(self):
 
-        def tf_map(batch_xyz, batch_features, batch_labels, batch_pc_idx, batch_cloud_idx):
+        def tf_map(batch_xyz, batch_labels, batch_pc_idx, batch_cloud_idx):
             if cfg.data_augmentation:
-                batch_features = tf.map_fn(self.tf_augment_input, [batch_xyz, batch_features], dtype=tf.float32)
+                batch_features = tf.map_fn(self.tf_augment_input, batch_xyz, dtype=tf.float32)
             else:
-                batch_features = tf.concat([batch_xyz, batch_features], axis=-1)
+                batch_features = batch_xyz
             #separate points to base and medium receptive field
             b_batch_xyz, m_batch_xyz = batch_xyz[:,:cfg.num_points * 4 //7,:], batch_xyz[:,cfg.num_points * 4 //7:,:]
             b_batch_features, m_batch_features = batch_features[:,:cfg.num_points * 4 //7,:], batch_features[:,cfg.num_points * 4 //7:,:]
@@ -357,7 +309,8 @@ class SensatUrban:
             opp = b_batch_xyz_opp[:, tf.shape(b_batch_xyz_opp)[1] // cfg.sub_sampling_ratio[0]:, :]
             cat_xyz = tf.concat((b_input_points[1],opp, m_batch_xyz_opp), axis = 1)
             reorder_idx = tf.py_func(DP.knn_search, [cat_xyz, batch_xyz, 1], tf.int32)
-
+            
+            
             input_list = b_input_points + b_input_neighbors + b_input_pools + b_input_up_samples + m_input_points + m_input_neighbors + m_input_pools + m_input_up_samples
             input_list += [b_batch_features, m_batch_features, batch_labels, batch_pc_idx, batch_cloud_idx, reorder_idx]
 
@@ -368,11 +321,8 @@ class SensatUrban:
     # data augmentation
     @staticmethod
     def tf_augment_input(inputs):
-        xyz = inputs[0]
-        features = inputs[1]
-
+        xyz = inputs
         theta = tf.random_uniform((1,), minval=0, maxval=2 * np.pi)
-        #theta = np.random.random() * np.pi * 2.
         # Rotation matrices
         c, s = tf.cos(theta), tf.sin(theta)
         cs0 = tf.zeros_like(c)
@@ -382,7 +332,6 @@ class SensatUrban:
 
         # Apply rotations
         transformed_xyz = tf.reshape(tf.matmul(xyz, stacked_rots), [-1, 3])
-
         # Choose random scales for each example
         min_s = cfg.augment_scale_min
         max_s = cfg.augment_scale_max
@@ -405,11 +354,9 @@ class SensatUrban:
         # Apply scales
         transformed_xyz = transformed_xyz * stacked_scales
 
-        #noise = tf.random_normal(tf.shape(transformed_xyz), stddev=cfg.augment_noise)
-        #transformed_xyz = transformed_xyz + noise
-        rgb = features[:, :3]
-        stacked_features = tf.concat([transformed_xyz, rgb], axis=-1)
-        return stacked_features
+        noise = tf.random_normal(tf.shape(transformed_xyz), stddev=cfg.augment_noise)
+        transformed_xyz = transformed_xyz + noise
+        return transformed_xyz
 
     def init_input_pipeline(self):
         print('Initiating input pipelines')
@@ -453,7 +400,7 @@ if __name__ == '__main__':
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
     Mode = FLAGS.mode
     
-    dataset = SensatUrban()
+    dataset = Dataset(mode=Mode)
     dataset.init_input_pipeline()
 
     if Mode == 'train':
@@ -464,20 +411,6 @@ if __name__ == '__main__':
         model = Network(dataset, cfg)
         chosen_snap = FLAGS.model_path
         tester = ModelTester(model, dataset, restore_snap=chosen_snap)
-        tester.test(model, dataset)
-    elif Mode == 'val':
-        model = Network(dataset, cfg)
-        if FLAGS.model_path is not 'None':
-            chosen_snap = FLAGS.model_path
-        else:
-            chosen_snapshot = -1
-            logs = np.sort([os.path.join('results', f) for f in os.listdir('results') if f.startswith('Log')])
-            chosen_folder = logs[-1]
-            snap_path = join(chosen_folder, 'snapshots')
-            snap_steps = [int(f[:-5].split('-')[-1]) for f in os.listdir(snap_path) if f[-5:] == '.meta']
-            chosen_step = np.sort(snap_steps)[-1]
-            chosen_snap = os.path.join(snap_path, 'snap-{:d}'.format(chosen_step))
-        tester = ModelTester_validation(model, dataset, restore_snap=chosen_snap)
         tester.test(model, dataset)
 
     else:

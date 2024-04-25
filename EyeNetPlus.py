@@ -115,13 +115,14 @@ class Network:
     def inference(self, inputs, is_training):
 
         d_out = self.config.d_out
+        f_f = self.config.first_features # 16 for DALES/Toronto3D, 32 for SensatUrban
         b_feature = inputs['b_features']
-        b_feature = tf.layers.dense(b_feature, 32, activation=None, name='fc0b')
+        b_feature = tf.layers.dense(b_feature, f_f, activation=None, name='fc0b')
         b_feature = tf.nn.leaky_relu(tf.layers.batch_normalization(b_feature, -1, 0.99, 1e-6, training=is_training))
         b_feature = tf.expand_dims(b_feature, axis=2)
         
         m_feature = inputs['m_features']
-        m_feature = tf.layers.dense(m_feature, 32, activation=None, name='fc0m')
+        m_feature = tf.layers.dense(m_feature, f_f, activation=None, name='fc0m')
         m_feature = tf.nn.leaky_relu(tf.layers.batch_normalization(m_feature, -1, 0.99, 1e-6, training=is_training))
         m_feature = tf.expand_dims(m_feature, axis=2)
 
@@ -130,7 +131,7 @@ class Network:
         m_f_encoder_list = []
         for i in range(self.config.num_layers):
             if i == 0:
-                b_f_encoder_i, m_f_encoder_i = self.connection_block(b_feature, m_feature, self.config.n_point_connection[i], 16, 'Connection_Layer_' + str(i) , is_training)
+                b_f_encoder_i, m_f_encoder_i = self.connection_block(b_feature, m_feature, self.config.n_point_connection[i], int(f_f/2), 'Connection_Layer_' + str(i) , is_training)
 
                 b_f_encoder_i = self.dilated_res_block(b_f_encoder_i, inputs['b_xyz'][i], inputs['b_neigh_idx'][i],
                                                           64,

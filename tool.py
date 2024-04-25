@@ -18,14 +18,16 @@ import nearest_neighbors.lib.python.nearest_neighbors as nearest_neighbors
 
     
 class ConfigSensatUrban:
+    exp_name = 'SensatUrban'
+    log_file_name = 'lovas'
+
     data_set_dir = '/nas2/jacob/SensatUrban_Data' #data set path
-    log_file_dir = 'train_log/Sensat_NoDRB_DCB2_7168_aug_900steps_sqrtPS' #log txt file saving path
-    train_sum_dir = 'tf_events/Sensat_NoDRB_DCB2_7168_aug_900steps_sqrtPS/lovas' #tf events saving path
-    saving_path = 'trained_weights/Sensat_NoDRB_DCB2_7168_aug_900steps_sqrtPS/lovas' #trained weights saving path
+    log_file_dir = 'train_log/{}'.format(exp_name) #log txt file saving path
+    train_sum_dir = 'tf_events/{}/{}'.format(exp_name, log_file_name) #tf events saving path
+    saving_path = 'trained_weights/{}/{}'.format(exp_name, log_file_name) #trained weights saving path
     saving = True
     use_custom_weights = False #using custom class weights. If it is false, it will read class counts from data.
 
-    log_file_name = 'lovas'
     show_base_only = False #showing performance on base receptive field only
     
     k_n = [16, 21, 21, 21, 16]  # KNN
@@ -36,14 +38,15 @@ class ConfigSensatUrban:
 
     batch_size = 32 # batch_size during training
     val_batch_size = 128  # batch_size during validation and test
-    train_steps = 900  # Number of steps per epochs
+    train_steps = 1400  # Number of steps per epochs
     val_steps = 50  # Number of validation steps per epoch
 
+    first_features = 32 # Number of first features from Input
     sub_sampling_ratio = [4, 4, 4, 4, 2]  # sampling ratio of random sampling at each layer
     connection_ratio = 4
     d_out = [64, 128, 256, 448, 512]
     #d_out = [16, 64, 128, 256, 512]  # feature dimension
-    n_point_connection = [1024, 256, 64, 16, 4]#[4096, 1024, 256, 64, 16] #Number of Connection Points for each layers
+    n_point_connection = [1024, 256, 64, 16, 8]#[4096, 1024, 256, 64, 16] #Number of Connection Points for each layers
 
     noise_init = 3.5  # noise initial parameter
     max_epoch = 100  # maximum epoch during training
@@ -70,28 +73,30 @@ class ConfigSensatUrban:
 
     
 class ConfigDALES:
-    exp_name = 'DALES_DCB2'
+    exp_name = 'DALES'
+    log_file_name = 'lovas'
+
     data_set_dir = '/nas2/jacob/DALES' # '/nas2/YJ/DALES' #data set path
     log_file_dir = 'train_log/{}'.format(exp_name) #log txt file saving path
-    train_sum_dir = 'tf_events/{}/SA_CN0_lovas_data_aug_2'.format(exp_name) #tf events saving path
-    saving_path = 'trained_weights/{}/SA_CN0_lovas_data_aug_2'.format(exp_name) #trained weights saving path
+    train_sum_dir = 'tf_events/{}/{}'.format(exp_name, log_file_name) #tf events saving path
+    saving_path = 'trained_weights/{}/{}'.format(exp_name, log_file_name) #trained weights saving path
     saving = True
     use_custom_weights = False #using custom class weights. If it is false, it will read class counts from data.
 
-    log_file_name = 'SA_CN0_lovas_data_aug_2'
     show_base_only = False #showing performance on base receptive field only
     
     k_n = [16, 21, 21, 21, 16]  # KNN
     num_layers = 5  # Number of layers
     num_points = 28672 #50176#114688#28672#57344 # Number of input points
     num_classes = 8  # Number of valid classes
-    sub_grid_size = 0.2 #0.20 # preprocess_parameter
+    sub_grid_size = 0.25 #0.20 # preprocess_parameter
 
     batch_size = 6 #8#8 # batch_size during training
     val_batch_size = 16 #32#32  # batch_size during validation and test
     train_steps = 1400 # 500 # Number of steps per epochs
     val_steps = 100  # Number of validation steps per epoch
 
+    first_features = 16 # Number of first features from Input
     sub_sampling_ratio = [4, 4, 4, 4, 2]  # sampling ratio of random sampling at each layer [4, 4, 4, 4, 2]
     connection_ratio = 4
     d_out = [64, 128, 256, 448, 512]  # feature dimension, this values is multiplied by 2
@@ -123,15 +128,16 @@ class ConfigDALES:
 
     
 class ConfigToronto3D:
+    exp_name = 'Toronto3D'
+    log_file_name = 'lovas'
+
     data_set_dir = '/nas2/jacob/data/Toronto3D' #data set path
-    log_file_dir = 'train_log/Toronto3D_DCB2' #log txt file saving path
-    train_sum_dir = 'tf_events/Toronto3D_DCB2/lovas_0' #tf events saving path
-    saving_path = 'trained_weights/Toronto3D_DCB2/lovas_0' #trained weights saving path
+    log_file_dir = 'train_log/{}'.format(exp_name) #log txt file saving path
+    train_sum_dir = 'tf_events/{}/{}'.format(exp_name, log_file_name) #tf events saving path
+    saving_path = 'trained_weights/{}/{}'.format(exp_name, log_file_name) #trained weights saving path
     saving = True
     use_custom_weights = False #using custom class weights. If it is false, it will read class counts from data.
     
-    
-    log_file_name = 'lovas_0'
     show_base_only = False #showing performance on base receptive field only
     
     use_rgb = False # Use RGB
@@ -146,15 +152,16 @@ class ConfigToronto3D:
     loss_function = 'lovas'
 
     batch_size = 6 # batch_size during training
-    val_batch_size = 2  # batch_size during validation and test
-    train_steps = 1400  # Number of steps per epochs
-    val_steps = 10  # Number of validation steps per epoch
+    val_batch_size = 8  # batch_size during validation and test
+    train_steps = 1000  # Number of steps per epochs
+    val_steps = 30  # Number of validation steps per epoch
 
+    first_features = 16 # Number of first features from Input
     sub_sampling_ratio = [4, 4, 4, 4, 2]  # sampling ratio of random sampling at each layer
     connection_ratio = 4
     d_out = [64, 128, 256, 448, 512]
     #d_out = [16, 64, 128, 256, 512]  # feature dimension
-    n_point_connection = [4096, 1024, 256, 64, 16] #Number of Connection Points for each layers
+    n_point_connection = [4096, 1024, 256, 64, 32] #Number of Connection Points for each layers
 
     noise_init = 3.5  # noise initial parameter
     max_epoch = 100  # maximum epoch during training
@@ -167,12 +174,12 @@ class ConfigToronto3D:
     preset_1 = 41
     preset_2 = 50
     
-    data_augmentation = False
+    data_augmentation = True
     augment_scale_anisotropic = True
     augment_symmetries = [True, False, False]
     augment_rotation = 'vertical'
-    augment_scale_min = 0.8
-    augment_scale_max = 1.2
+    augment_scale_min = 0.9
+    augment_scale_max = 1.1
     augment_noise = 0.001
 
 
