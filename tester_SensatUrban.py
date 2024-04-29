@@ -52,7 +52,7 @@ class ModelTester:
         self.test_probs = [np.zeros(shape=[l.shape[0], model.config.num_classes], dtype=np.float32)
                            for l in dataset.input_labels['test']]
 
-    def test(self, model, dataset, num_votes=100):
+    def test(self, model, dataset, num_votes=30):
 
         # Smoothing parameter for votes
         test_smooth = 0.95

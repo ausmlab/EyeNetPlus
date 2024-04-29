@@ -18,7 +18,7 @@ import nearest_neighbors.lib.python.nearest_neighbors as nearest_neighbors
 
     
 class ConfigSensatUrban:
-    exp_name = 'SensatUrban'
+    exp_name = 'SensatUrban_Full'
     log_file_name = 'lovas'
 
     data_set_dir = '/nas2/jacob/SensatUrban_Data' #data set path
@@ -37,8 +37,8 @@ class ConfigSensatUrban:
     sub_grid_size = 0.2 # preprocess_parameter
 
     batch_size = 32 # batch_size during training
-    val_batch_size = 128  # batch_size during validation and test
-    train_steps = 1400  # Number of steps per epochs
+    val_batch_size = 32  # batch_size during validation and test
+    train_steps = 2400  # Number of steps per epochs
     val_steps = 50  # Number of validation steps per epoch
 
     first_features = 32 # Number of first features from Input
@@ -55,7 +55,7 @@ class ConfigSensatUrban:
     
     loss_function = 'lovas' # wce, lovas, cbloss
     
-    use_val_data = False #using validation data for training
+    use_val_data = True #using validation data for training
     
     save_preset_epoch= False
     preset_1 = 41
@@ -89,14 +89,14 @@ class ConfigDALES:
     num_layers = 5  # Number of layers
     num_points = 28672 #50176#114688#28672#57344 # Number of input points
     num_classes = 8  # Number of valid classes
-    sub_grid_size = 0.25 #0.20 # preprocess_parameter
+    sub_grid_size = 0.20 #0.20 # preprocess_parameter
 
-    batch_size = 6 #8#8 # batch_size during training
-    val_batch_size = 16 #32#32  # batch_size during validation and test
+    batch_size = 8 #8#8 # batch_size during training
+    val_batch_size = 8 #32#32  # batch_size during validation and test
     train_steps = 1400 # 500 # Number of steps per epochs
     val_steps = 100  # Number of validation steps per epoch
 
-    first_features = 16 # Number of first features from Input
+    first_features = 8 # Number of first features from Input
     sub_sampling_ratio = [4, 4, 4, 4, 2]  # sampling ratio of random sampling at each layer [4, 4, 4, 4, 2]
     connection_ratio = 4
     d_out = [64, 128, 256, 448, 512]  # feature dimension, this values is multiplied by 2
@@ -116,7 +116,7 @@ class ConfigDALES:
     preset_1 = 41
     preset_2 = 50
     
-    data_augmentation = False
+    data_augmentation = True
     augment_scale_anisotropic = True
     augment_symmetries = [True, False, False]
     augment_rotation = 'vertical'
@@ -151,7 +151,7 @@ class ConfigToronto3D:
     
     loss_function = 'lovas'
 
-    batch_size = 6 # batch_size during training
+    batch_size = 8 # batch_size during training
     val_batch_size = 8  # batch_size during validation and test
     train_steps = 1000  # Number of steps per epochs
     val_steps = 30  # Number of validation steps per epoch

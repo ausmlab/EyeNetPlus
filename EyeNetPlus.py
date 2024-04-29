@@ -236,14 +236,17 @@ class Network:
 
             except tf.errors.OutOfRangeError:
 
-                m_iou = self.evaluate(dataset)
+                #m_iou = self.evaluate(dataset)
                 #if m_iou > np.max(self.mIou_list):
                     # Save the best model
                 snapshot_directory = join(self.saving_path, 'snapshots')
                 makedirs(snapshot_directory) if not exists(snapshot_directory) else None
                 self.saver.save(self.sess, snapshot_directory + '/snap', global_step=self.training_step)
-                self.mIou_list.append(m_iou)
-                log_out('Best m_IoU is: {:5.3f}'.format(max(self.mIou_list)), self.Log_file)
+
+                if not self.config.use_val_data :
+                    m_iou = self.evaluate(dataset)
+                    self.mIou_list.append(m_iou)
+                    log_out('Best m_IoU is: {:5.3f}'.format(max(self.mIou_list)), self.Log_file)
                 
                 if self.config.save_preset_epoch:
                     if self.training_epoch == self.config.preset_1:
@@ -407,7 +410,7 @@ class Network:
 
     def dilated_res_block(self, feature, xyz, neigh_idx, d_out, name, is_training, tag):
         f_pc = helper_tf_util.conv2d(feature, d_out // 2, [1, 1], name + 'mlp1_'+ tag, [1, 1], 'VALID', True, is_training)
-        f_pc = self.building_no_drb_block(xyz, f_pc, neigh_idx, d_out, name + 'LFA_'+ tag, is_training)
+        f_pc = self.building_block(xyz, f_pc, neigh_idx, d_out, name + 'LFA_'+ tag, is_training)
         f_pc = helper_tf_util.conv2d(f_pc, d_out * 2, [1, 1], name + 'mlp2_'+ tag, [1, 1], 'VALID', True, is_training,
                                      activation_fn=None)
         shortcut = helper_tf_util.conv2d(feature, d_out * 2, [1, 1], name + 'shortcut_' + tag, [1, 1], 'VALID',
