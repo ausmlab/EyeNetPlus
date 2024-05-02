@@ -410,7 +410,7 @@ class Network:
 
     def dilated_res_block(self, feature, xyz, neigh_idx, d_out, name, is_training, tag):
         f_pc = helper_tf_util.conv2d(feature, d_out // 2, [1, 1], name + 'mlp1_'+ tag, [1, 1], 'VALID', True, is_training)
-        f_pc = self.building_block(xyz, f_pc, neigh_idx, d_out, name + 'LFA_'+ tag, is_training)
+        f_pc = self.building_no_drb_block(xyz, f_pc, neigh_idx, d_out, name + 'LFA_'+ tag, is_training)
         f_pc = helper_tf_util.conv2d(f_pc, d_out * 2, [1, 1], name + 'mlp2_'+ tag, [1, 1], 'VALID', True, is_training,
                                      activation_fn=None)
         shortcut = helper_tf_util.conv2d(feature, d_out * 2, [1, 1], name + 'shortcut_' + tag, [1, 1], 'VALID',

@@ -36,8 +36,8 @@ class ConfigSensatUrban:
     num_classes = 13  # Number of valid classes
     sub_grid_size = 0.2 # preprocess_parameter
 
-    batch_size = 32 # batch_size during training
-    val_batch_size = 32  # batch_size during validation and test
+    batch_size = 24 # batch_size during training
+    val_batch_size = 24  # batch_size during validation and test
     train_steps = 2400  # Number of steps per epochs
     val_steps = 50  # Number of validation steps per epoch
 
