@@ -18,7 +18,7 @@ import nearest_neighbors.lib.python.nearest_neighbors as nearest_neighbors
 
     
 class ConfigSensatUrban:
-    exp_name = 'SensatUrban_Full'
+    exp_name = 'SensatUrban'
     log_file_name = 'lovas'
 
     data_set_dir = '/nas2/jacob/SensatUrban_Data' #data set path
@@ -36,9 +36,9 @@ class ConfigSensatUrban:
     num_classes = 13  # Number of valid classes
     sub_grid_size = 0.2 # preprocess_parameter
 
-    batch_size = 24 # batch_size during training
-    val_batch_size = 24  # batch_size during validation and test
-    train_steps = 2400  # Number of steps per epochs
+    batch_size = 32 # batch_size during training
+    val_batch_size = 128  # batch_size during validation and test
+    train_steps = 1400  # Number of steps per epochs
     val_steps = 50  # Number of validation steps per epoch
 
     first_features = 32 # Number of first features from Input
@@ -55,7 +55,7 @@ class ConfigSensatUrban:
     
     loss_function = 'lovas' # wce, lovas, cbloss
     
-    use_val_data = True #using validation data for training
+    use_val_data = False #using validation data for training
     
     save_preset_epoch= False
     preset_1 = 41
@@ -89,14 +89,14 @@ class ConfigDALES:
     num_layers = 5  # Number of layers
     num_points = 28672 #50176#114688#28672#57344 # Number of input points
     num_classes = 8  # Number of valid classes
-    sub_grid_size = 0.20 #0.20 # preprocess_parameter
+    sub_grid_size = 0.25 #0.20 # preprocess_parameter
 
-    batch_size = 8 #8#8 # batch_size during training
-    val_batch_size = 8 #32#32  # batch_size during validation and test
+    batch_size = 6 #8#8 # batch_size during training
+    val_batch_size = 16 #32#32  # batch_size during validation and test
     train_steps = 1400 # 500 # Number of steps per epochs
     val_steps = 100  # Number of validation steps per epoch
 
-    first_features = 8 # Number of first features from Input
+    first_features = 16 # Number of first features from Input
     sub_sampling_ratio = [4, 4, 4, 4, 2]  # sampling ratio of random sampling at each layer [4, 4, 4, 4, 2]
     connection_ratio = 4
     d_out = [64, 128, 256, 448, 512]  # feature dimension, this values is multiplied by 2
@@ -116,7 +116,7 @@ class ConfigDALES:
     preset_1 = 41
     preset_2 = 50
     
-    data_augmentation = True
+    data_augmentation = False
     augment_scale_anisotropic = True
     augment_symmetries = [True, False, False]
     augment_rotation = 'vertical'
@@ -140,7 +140,7 @@ class ConfigToronto3D:
     
     show_base_only = False #showing performance on base receptive field only
     
-    use_rgb = False # Use RGB
+    use_rgb = True # Use RGB
     use_intensity = True # Use intensity
     
     k_n = [16, 21, 21, 21, 16]  # KNN
@@ -151,7 +151,7 @@ class ConfigToronto3D:
     
     loss_function = 'lovas'
 
-    batch_size = 8 # batch_size during training
+    batch_size = 6 # batch_size during training
     val_batch_size = 8  # batch_size during validation and test
     train_steps = 1000  # Number of steps per epochs
     val_steps = 30  # Number of validation steps per epoch
@@ -183,8 +183,227 @@ class ConfigToronto3D:
     augment_noise = 0.001
 
 
-class DataProcessing:
+class ConfigSemantic3D:
+    exp_name = 'Semantic3D'
+    log_file_name = '28672_rgb_fixed_lovas_augment_custom_weight'
+    
+    data_set_dir =  '/nas2/jacob/data/semantic3d' #data set path
+    log_file_dir = 'train_log/{}'.format(exp_name) #log stxt file saving path
+    train_sum_dir = 'tf_events/{}/{}'.format(exp_name, log_file_name) #tf events saving path
+    saving_path = 'trained_weights/{}/{}'.format(exp_name, log_file_name) #trained weights saving path
+    saving = True
+    use_custom_weights = True #using custom class weights. If it is false, it will read class counts from data.
+    
+    show_base_only = False #showing performance on base receptive field only
+    
+    k_n = [16, 21, 21, 21, 16]  # KNN
+    num_layers = 5  # Number of layers
+    num_points = 28672 # Number of input points
+    num_classes = 8  # Number of valid classes
+    sub_grid_size = 0.06 # preprocess_parameter
+    
+    loss_function = 'lovas'
 
+    batch_size = 12 # batch_size during training
+    val_batch_size = 24  # batch_size during validation and test
+    train_steps = 500  # Number of steps per epochs
+    val_steps = 50  # Number of validation steps per epoch
+    
+    first_features = 16
+    sub_sampling_ratio = [4, 4, 4, 4, 2]  # sampling ratio of random sampling at each layer
+    connection_ratio = 4
+    d_out = [64, 128, 256, 448, 512]  # feature dimension
+    n_point_connection = [4096, 1024, 256, 64, 32] #Number of Connection Points for each layers
+
+    noise_init = 3.5  # noise initial parameter
+    max_epoch = 100  # maximum epoch during training
+    learning_rate = 5e-3  # initial learning rate
+    lr_decays = {i: 0.95 for i in range(0, 500)}  # decay rate of learning rate
+    
+    use_val_data = False #using validation data for training
+    
+    save_preset_epoch= False
+    preset_1 = 41
+    preset_2 = 50
+    
+    data_augmentation = True
+    augment_scale_anisotropic = True
+    augment_symmetries = [True, False, False]
+    augment_rotation = 'vertical'
+    augment_scale_min = 0.8
+    augment_scale_max = 1.2
+    augment_noise = 0.001
+
+    
+class ConfigSemanticKITTI:
+    exp_name = 'SemanticKITTI'
+    log_file_name = '7168'
+    
+    data_set_dir =  '/nas2/jacob/data/SemanticKITTI/dataset/sequences_0.06' #data set path
+    log_file_dir = 'train_log/{}'.format(exp_name) #log stxt file saving path
+    train_sum_dir = 'tf_events/{}/{}'.format(exp_name, log_file_name) #tf events saving path
+    saving_path = 'trained_weights/{}/{}'.format(exp_name, log_file_name) #trained weights saving path
+    saving = True
+    use_custom_weights = True #using custom class weights. If it is false, it will read class counts from data.
+    
+    show_base_only = False #showing performance on base receptive field only
+    
+    k_n = [16, 21, 21, 21, 16]  # KNN
+    num_layers = 5  # Number of layers
+    num_points = 7168 # Number of input points
+    num_classes = 19  # Number of valid classes
+    sub_grid_size = 0.06 # preprocess_parameter
+    
+    loss_function = 'lovas'
+
+    batch_size = 32 # batch_size during training
+    val_batch_size = 32  # batch_size during validation and test
+    train_steps = 500  # Number of steps per epochs
+    val_steps = 120  # Number of validation steps per epoch
+    
+    first_features = 16
+    sub_sampling_ratio = [4, 4, 4, 4, 2]  # sampling ratio of random sampling at each layer
+    connection_ratio = 4
+    d_out = [64, 128, 256, 448, 512]  # feature dimension
+    n_point_connection = [1024, 256, 64, 16, 8] #Number of Connection Points for each layers
+
+    noise_init = 3.5  # noise initial parameter
+    max_epoch = 100  # maximum epoch during training
+    learning_rate = 5e-3  # initial learning rate
+    lr_decays = {i: 0.95 for i in range(0, 500)}  # decay rate of learning rate
+    
+    use_val_data = False #using validation data for training
+    
+    save_preset_epoch= False
+    preset_1 = 41
+    preset_2 = 50
+    
+    data_augmentation = True
+    augment_scale_anisotropic = True
+    augment_symmetries = [True, False, False]
+    augment_rotation = 'vertical'
+    augment_scale_min = 0.9
+    augment_scale_max = 1.1
+    augment_noise = 0.001
+
+class ConfigS3DIS:
+    exp_name = 'S3DIS'
+    log_file_name = 'First'
+    
+    data_set_dir =  '/nas2/jacob/S3DIS_merged' #data set path
+    log_file_dir = 'train_log/{}'.format(exp_name) #log stxt file saving path
+    train_sum_dir = 'tf_events/{}/{}'.format(exp_name, log_file_name) #tf events saving path
+    saving_path = 'trained_weights/{}/{}'.format(exp_name, log_file_name) #trained weights saving path
+    saving = True
+    
+    show_base_only = False #showing performance on base receptive field only
+    use_custom_weights = False #using custom class weights. If it is false, it will read class counts from data.
+    
+    log_file_name = 'Debug'
+    show_base_only = False
+    
+    k_n = [16, 21, 21, 21, 16]  # KNN
+    num_layers = 5  # Number of layers
+    num_points = 17920  # Number of input points
+    num_classes = 13  # Number of valid classes
+    sub_grid_size = 0.04 # preprocess_parameter
+
+    batch_size = 16 # batch_size during training
+    val_batch_size = 16  # batch_size during validation and test
+    train_steps = 500  # Number of steps per epochs
+    val_steps = 100  # Number of validation steps per epoch
+    
+    first_features = 16
+    sub_sampling_ratio = [4, 4, 4, 4, 2]  # sampling ratio of random sampling at each layer
+    connection_ratio = 4
+    d_out = [64, 128, 256, 448, 512]  # feature dimension
+    n_point_connection = [2560, 640, 160, 40, 20]#[10240, 2560, 640, 160, 40]
+
+    noise_init = 3.5  # noise initial parameter
+    max_epoch = 100  # maximum epoch during training
+    learning_rate = 5e-3  # initial learning rate
+    lr_decays = {i: 0.95 for i in range(0, 500)}  # decay rate of learning rate
+    
+    loss_function = 'lovas' # wce, lovas, cbloss
+    use_val_data = False #using validation data for training
+
+    save_preset_epoch= False
+    preset_1 = 89
+    preset_2 = 109
+    
+    
+class ConfigYU:
+    exp_name = 'YU'
+    log_file_name = 'First'
+    
+    data_set_dir =  '/nas2/jacob/data/YU_Data_ver.0' #data set path
+    log_file_dir = 'train_log/{}'.format(exp_name) #log stxt file saving path
+    train_sum_dir = 'tf_events/{}/{}'.format(exp_name, log_file_name) #tf events saving path
+    saving_path = 'trained_weights/{}/{}'.format(exp_name, log_file_name) #trained weights saving path
+    
+    saving = True
+    use_custom_weights = False #using custom class weights. If it is false, it will read class counts from data.
+    
+    show_base_only = False #showing performance on base receptive field only
+    
+    k_n = [16, 21, 21, 21, 16]  # KNN
+    num_layers = 5  # Number of layers
+    num_points = 28672  # Number of input points
+    num_classes = 9  # Number of valid classes
+    sub_grid_size = 0.20 # preprocess_parameter
+    n_return = True # using number of returns as an additional featuer
+
+    batch_size = 6  # batch_size during training
+    val_batch_size = 6  # batch_size during validation and test
+    train_steps = 1400  # Number of steps per epochs
+    val_steps = 200  # Number of validation steps per epoch
+    
+    first_features = 16
+    sub_sampling_ratio = [4, 4, 4, 4, 2]  # sampling ratio of random sampling at each layer
+    connection_ratio = 4
+    d_out = [64, 128, 256, 448, 512]  # feature dimension
+    n_point_connection = [4096, 1024, 256, 64, 16] #Number of Connection Points for each layers
+    
+    loss_function='lovas'
+    use_val_data = False #using validation data for training
+    
+    
+    noise_init = 3.5  # noise initial parameter
+    max_epoch = 100  # maximum epoch during training
+    learning_rate = 5e-3# initial learning rate
+    lr_decays = {i: 0.95 for i in range(0, 500)}  # decay rate of learning rate
+    
+    save_preset_epoch= False
+    preset_1 = 41
+    preset_2 = 50
+    
+    data_augmentation = False
+    augment_scale_anisotropic = True
+    augment_symmetries = [True, False, False]
+    augment_rotation = 'vertical'
+    augment_scale_min = 0.8
+    augment_scale_max = 1.2
+    augment_noise = 0.001
+    
+class DataProcessing:
+    
+    @staticmethod
+    def load_pc_kitti(pc_path):
+        scan = np.fromfile(pc_path, dtype=np.float32)
+        scan = scan.reshape((-1, 4))
+        points = scan[:, 0:3]  # get xyz
+        return points
+
+    @staticmethod
+    def load_label_kitti(label_path, remap_lut):
+        label = np.fromfile(label_path, dtype=np.uint32)
+        label = label.reshape((-1))
+        sem_label = label & 0xFFFF  # semantic label in lower half
+        inst_label = label >> 16  # instance id in upper half
+        assert ((sem_label + (inst_label << 16) == label).all())
+        sem_label = remap_lut[sem_label]
+        return sem_label.astype(np.int32)
+    
     @staticmethod
     def get_num_class_from_label(labels, total_class):
         num_pts_per_class = np.zeros(total_class, dtype=np.int32)
@@ -207,6 +426,32 @@ class DataProcessing:
 
         neighbor_idx = nearest_neighbors.knn_batch(support_pts, query_pts, k, omp=True)
         return neighbor_idx.astype(np.int32)
+
+    @staticmethod
+    def get_file_list(dataset_path, test_scan_num):
+        seq_list = np.sort(os.listdir(dataset_path))
+
+        train_file_list = []
+        test_file_list = []
+        val_file_list = []
+        for seq_id in seq_list:
+            seq_path = join(dataset_path, seq_id)
+            pc_path = join(seq_path, 'velodyne')
+            if seq_id == '.ipynb_checkpoints':
+                continue
+            if seq_id == '08':
+                val_file_list.append([join(pc_path, f) for f in np.sort(os.listdir(pc_path))])
+                if seq_id == test_scan_num:
+                    test_file_list.append([join(pc_path, f) for f in np.sort(os.listdir(pc_path))])
+            elif int(seq_id) >= 11 and seq_id == test_scan_num:
+                test_file_list.append([join(pc_path, f) for f in np.sort(os.listdir(pc_path))])
+            elif seq_id in ['00', '01', '02', '03', '04', '05', '06', '07', '09', '10']:
+                train_file_list.append([join(pc_path, f) for f in np.sort(os.listdir(pc_path))])
+
+        train_file_list = np.concatenate(train_file_list, axis=0)
+        val_file_list = np.concatenate(val_file_list, axis=0)
+        test_file_list = np.concatenate(test_file_list, axis=0)
+        return train_file_list, val_file_list, test_file_list    
 
     @staticmethod
     def data_aug(xyz, color, labels, idx, num_out):
@@ -420,10 +665,11 @@ class DataProcessing:
             return points[idx], features[idx], labels[idx]
 
     @staticmethod
-    def get_class_weights(num_per_class, name='sqrt', num_class=13 , custom_weights = False, beta=0.9999):
+    def get_class_weights(num_per_class, name='sqrt', num_class=13, custom_weights = False, beta=0.9999):
         # # pre-calculate the number of points in each category
         if custom_weights:
-            num_per_class = np.array([10,10,10,1,1,1], dtype=np.int32)
+            num_per_class = np.array([5181602, 5012952, 6830086, 1311528, 10476365, 946982, 334860, 269353],
+                                     dtype=np.int32)
         
         frequency = num_per_class / float(sum(num_per_class))
         if name == 'sqrt' or name == 'lovas':
